@@ -43,7 +43,8 @@ Browser RAG 2 indexes three source types — **web pages** (from your browser hi
 
 The extension's `content.js` injects CSS outlines directly onto the matching DOM elements of the live web page. Yellow = text chunk match. The rank badge (`#1`, `#2`, …) appears above each highlighted element.
 
-![HTML in-page highlighter](docs/screenshots/html_highlighter.png)
+<img width="1400" height="861" alt="image" src="https://github.com/user-attachments/assets/dc68df60-88b7-4d7c-b4c4-a91716ec6ffa" />
+
 
 > *Query: "What is Unicode Codespace?" — the two paragraphs that were retrieved as the top-scoring chunks are outlined in yellow with rank badges on `reedbeta.com/blog/programmers-intro-to-unicode/`.*
 
@@ -53,7 +54,8 @@ The extension's `content.js` injects CSS outlines directly onto the matching DOM
 
 The Search panel inside the Browser Intelligence extension window. A text query has been submitted and the backend is processing it (hybrid retrieval + rerank + LLM generation).
 
-![Search tab — searching](docs/screenshots/search_tab.png)
+<img width="1067" height="800" alt="image" src="https://github.com/user-attachments/assets/7faff043-e217-472c-9e8e-26d981217154" />
+
 
 > *The extension is opened as a full browser tab (`chrome-extension://…/html/popup.html`). The search bar shows "What is Unicode Codespace?" and the spinner reads "Searching…" while the `/query` API call runs.*
 
@@ -63,7 +65,8 @@ The Search panel inside the Browser Intelligence extension window. A text query 
 
 The updated `ingest_pdf.py` open in VS Code, showing the OCR fallback block (lines 525–563). When Docling OCR returns no text for a scanned page, a pure image-only chunk is stored with both `text_vec` and `image_vec` set to the CLIP page embedding, and `ocr_failed: true` in the payload. The terminal below shows live structured logs from the ingestion pipeline.
 
-![ingest_pdf.py OCR fallback + live logs](docs/screenshots/codebase_ingest_pdf.png)
+<img width="1372" height="878" alt="image" src="https://github.com/user-attachments/assets/86fa47d2-7892-400b-b82e-0249819d6c16" />
+
 
 > *Editor shows `ingest_pdf.py` at the OCR fallback section. The terminal shows structured logs: `ingest_html` indexing a page from `karpathy.github.io` — fetching → parsing → text chunks (644 chars) → image chunks (1 image) → `HTML indexed` with 14 points stored into Qdrant.*
 
@@ -73,7 +76,8 @@ The updated `ingest_pdf.py` open in VS Code, showing the OCR fallback block (lin
 
 After retrieval completes, the Answer tab is shown automatically. The LLM answer is displayed with timing, a Copy button, and a clickable source citation that opens the source page in a new tab with highlights. The "↗ Open All 1 Source in New Tabs" button opens every retrieved document simultaneously.
 
-![Search result — Answer tab](docs/screenshots/search_result_answer.png)
+<img width="1456" height="820" alt="image" src="https://github.com/user-attachments/assets/c2f72e5a-01d7-4985-aacc-9b1b64c2ae1b" />
+
 
 > *Query: "What is Unicode Codespace?" — LLM answer displayed with 17770ms generation time. Source `[1] www.reedbeta.com/blog/programmers-intro-to-unicode/` is clickable — it opens the page and triggers the CSS highlight injection shown in Screenshot 1.*
 
