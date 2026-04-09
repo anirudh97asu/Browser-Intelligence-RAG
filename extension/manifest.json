@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "Browser RAG",
+  "version": "1.0.1",
+  "description": "Local RAG over Brave browser history — 100% on-device.",
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "action": {
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Browser RAG"
+  },
+
+  "background": {
+    "service_worker": "js/background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["js/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "windows"
+  ],
+
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://*/*",
+    "https://*/*",
+    "file:///*"
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "viewer/pdf_viewer.html",
+        "viewer/pdf_viewer.js",
+        "viewer/claude_viewer.html",
+        "viewer/pdfjs/pdf.min.js",
+        "viewer/pdfjs/pdf.worker.min.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src http://localhost:8000 http://localhost:11434"
+  }
+}

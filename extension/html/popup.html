@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browser Intelligence</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --surface2: #1c2128;
+  --border:   #30363d;
+  --accent:   #3fb950;
+  --accent2:  #58a6ff;
+  --accent3:  #f0883e;
+  --danger:   #f85149;
+  --warning:  #e3b341;
+  --purple:   '#a371f7';
+  --text:     #c9d1d9;
+  --muted:    #6e7681;
+  --radius:   8px;
+  --radius-sm: 4px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+}
+
+/* ── LAYOUT ── */
+.app-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 48px 1fr;
+  min-height: 600px;   /* works whether opened as window or tab */
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── HEADER ── */
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.logo-icon { font-size: 18px; }
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+.health-dot {
+  font-size: 14px;
+  cursor: default;
+  transition: color 0.3s;
+}
+.vector-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 12px 8px;
+}
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 8px 10px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(63,185,80,0.12); color: var(--accent); }
+.nav-icon { font-size: 15px; min-width: 18px; }
+
+/* ── MAIN CONTENT ── */
+.main {
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── PANELS ── */
+.panel { display: none; flex-direction: column; gap: 16px; }
+.panel.active { display: flex; }
+
+/* ── BANNERS ── */
+.banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border: 1px solid;
+}
+.banner--offline { background: rgba(248,81,73,0.08); border-color: var(--danger); color: var(--danger); }
+.banner--stale   { background: rgba(227,179,65,0.08);  border-color: var(--warning); color: var(--warning); }
+.banner--info    { background: rgba(88,166,255,0.08);  border-color: var(--accent2); color: var(--accent2); display: flex; }
+.banner a { color: inherit; }
+.banner-actions { margin-left: auto; display: flex; gap: 6px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ── FORM ELEMENTS ── */
+label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+input[type="text"], input[type="url"], select, textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type="text"]:focus, input[type="url"]:focus, select:focus, textarea:focus {
+  border-color: var(--accent2);
+}
+input[type="text"]::placeholder, input[type="url"]::placeholder { color: var(--muted); }
+
+select option { background: var(--surface); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: opacity 0.15s, background 0.15s;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn--primary  { background: var(--accent);  color: #000; }
+.btn--accent2  { background: var(--accent2); color: #000; }
+.btn--outline  { background: none; border: 1px solid var(--border); color: var(--text); }
+.btn--outline:hover { border-color: var(--accent2); color: var(--accent2); }
+.btn--danger   { background: var(--danger); color: #fff; }
+.btn--small    { padding: 5px 10px; font-size: 12px; }
+.btn--tiny     { padding: 2px 8px; font-size: 11px; background: none; border: 1px solid currentColor; border-radius: 3px; cursor: pointer; color: inherit; }
+.btn--full     { width: 100%; }
+.btn--index    { background: linear-gradient(135deg, #3fb950, #58a6ff); color: #000; font-size: 14px; padding: 12px 20px; font-weight: 600; }
+
+/* ── CHECK CARDS ── */
+.check-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.check-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 12px;
+  color: var(--muted);
+}
+.check-card:hover { border-color: var(--accent2); color: var(--text); }
+.check-card.checked { border-color: var(--accent); background: rgba(63,185,80,0.08); color: var(--accent); }
+.check-card .check-icon { font-size: 18px; }
+.check-card input[type="checkbox"] { display: none; }
+
+/* ── STEP CARDS ── */
+.step-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.step-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  transition: border-color 0.2s;
+}
+.step-card .step-label { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.step-card .step-stat  { font-size: 13px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+.step-card .step-pct   { font-size: 11px; color: var(--muted); }
+.step-card .step-mini-bar { height: 2px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.step-card .step-mini-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.4s; }
+.step-card.step--active  { border-color: var(--accent2); }
+.step-card.step--active .step-stat { color: var(--accent2); }
+.step-card.step--done    { border-color: var(--accent); }
+.step-card.step--done .step-stat { color: var(--accent); }
+.step-card.step--error   { border-color: var(--danger); }
+.step-card.step--error .step-stat { color: var(--danger); }
+.step-card.step--skip    { opacity: 0.5; }
+.step-feed {
+  font-size: 10px; color: var(--muted); margin-top: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'IBM Plex Mono', monospace; min-height: 13px;
+  transition: color 0.3s;
+}
+.step-feed.step-feed--active { color: var(--accent2); }
+
+/* ── PROGRESS ── */
+.progress-section { display: none; }
+.progress-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.progress-bar-fill  { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width 0.4s ease; border-radius: 3px; }
+.progress-meta { display: flex; gap: 16px; font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.progress-ready {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: rgba(63,185,80,0.1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* ── ERROR LOG ── */
+.error-log { display: none; margin-top: 8px; }
+.error-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 6px 10px;
+  background: rgba(248,81,73,0.06);
+  border: 1px solid rgba(248,81,73,0.25);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--danger);
+}
+.error-count-badge { font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+.error-list { display: none; max-height: 180px; overflow-y: auto; margin-top: 4px; }
+.error-row { display: flex; gap: 8px; padding: 4px 8px; font-size: 11px; border-bottom: 1px solid var(--border); }
+.error-url  { color: var(--muted); min-width: 140px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'IBM Plex Mono', monospace; }
+.error-msg  { color: var(--text); flex: 1; }
+
+/* ── SEARCH ── */
+.search-box { display: flex; gap: 8px; }
+.search-box input { flex: 1; }
+.search-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.search-tab { padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 12px; font-family: inherit; }
+.search-tab.active { background: var(--accent2); color: #000; border-color: var(--accent2); }
+
+/* ── RESULTS ── */
+.results-section { display: none; }
+.results-answer {
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: border-color 0.15s;
+}
+.result-card:hover { border-color: var(--accent2); }
+.result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.result-url  { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--accent2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.result-score { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.result-snippet { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+.result-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.badge { font-size: 10px; padding: 1px 6px; border-radius: 12px; font-weight: 500; border: 1px solid; }
+.badge--text           { color: #e3b341; border-color: #e3b341; background: rgba(227,179,65,0.08); }
+.badge--image          { color: #58a6ff; border-color: #58a6ff; background: rgba(88,166,255,0.08); }
+.badge--image_page     { color: #58a6ff; border-color: #58a6ff; background: rgba(88,166,255,0.08); }
+.badge--image_embedded { color: #a371f7; border-color: #a371f7; background: rgba(163,113,247,0.08); }
+.badge--table          { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,0.08); }
+.badge--code           { color: #a371f7; border-color: #a371f7; background: rgba(163,113,247,0.08); }
+.agent-steps { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 8px; }
+
+/* ── SOURCES PANEL ── */
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.source-row:last-child { border-bottom: none; }
+.source-info { flex: 1; }
+.source-name { font-weight: 500; font-size: 13px; }
+.source-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.source-actions { display: flex; gap: 6px; }
+
+/* ── IMAGE DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent2); color: var(--accent2); }
+.drop-zone img { max-height: 120px; max-width: 100%; border-radius: 4px; margin-bottom: 8px; display: none; }
+
+/* ── MODAL ── */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal.open { display: flex; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+.import-step { font-size: 13px; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+.import-step a { color: var(--accent2); }
+
+/* ── DASHBOARD ── */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+.stat-value { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+
+/* ── Answer tab ─────────────────────────────────────────────────────────── */
+.answer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.answer-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.answer-timing {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 8px;
+}
+.answer-body {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.answer-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.answer-sources-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.answer-source-link {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent2);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 7px;
+  transition: border-color 0.12s;
+}
+.answer-source-link:hover {
+  border-color: var(--accent2);
+}
+.answer-steps {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1.5;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── MISC ── */
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+.text-muted { color: var(--muted); font-size: 12px; }
+.text-accent { color: var(--accent); }
+.text-mono { font-family: 'IBM Plex Mono', monospace; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">🧠</span>
+      Browser Intelligence
+    </div>
+    <div id="offline-banner" class="banner banner--offline" style="border:none;padding:4px 12px;font-size:12px;">
+      ⚠ Backend offline — start the server at localhost:8000
+    </div>
+    <div class="header-meta">
+      <span id="vector-count" class="vector-count">— vectors</span>
+      <span id="health-dot" class="health-dot" title="Health">●</span>
+    </div>
+  </header>
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar">
+    <div class="nav-section-label">Workspace</div>
+    <button class="nav-item active" data-panel="dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </button>
+    <button class="nav-item" data-panel="index">
+      <span class="nav-icon">⚡</span> Index
+    </button>
+    <button class="nav-item" data-panel="test">
+      <span class="nav-icon">🧪</span> Test Pipeline
+    </button>
+    <button class="nav-item" data-panel="search">
+      <span class="nav-icon">🔍</span> Search
+    </button>
+
+    <div class="nav-section-label" style="margin-top:12px">Sources</div>
+    <button class="nav-item" data-panel="sources">
+      <span class="nav-icon">🌐</span> Web History
+    </button>
+    <button class="nav-item" data-panel="pdfs">
+      <span class="nav-icon">📄</span> PDFs
+    </button>
+    <button class="nav-item" data-panel="claude">
+      <span class="nav-icon">🤖</span> Claude Chats
+    </button>
+
+    <div class="nav-section-label" style="margin-top:12px">System</div>
+    <button class="nav-item" data-panel="logs">
+      <span class="nav-icon">🪵</span> Logs
+    </button>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- STALE BANNER -->
+    <div id="stale-banner" class="banner banner--stale" style="display:none">
+      ⏰ Index is over 6 months old — consider re-indexing for fresh results
+      <div class="banner-actions">
+        <button class="btn btn--tiny" id="btn-reindex-now">Re-index now</button>
+        <button class="btn btn--tiny" id="btn-stale-later">Later (7d)</button>
+        <button class="btn btn--tiny" id="btn-stale-dismiss">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div id="dash-vectors" class="stat-value">—</div>
+          <div class="stat-label">Total Vectors</div>
+        </div>
+        <div class="stat-card">
+          <div id="dash-device" class="stat-value" style="font-size:14px">—</div>
+          <div class="stat-label">Device</div>
+        </div>
+        <div class="stat-card">
+          <div id="dash-status" class="stat-value" style="font-size:14px">—</div>
+          <div class="stat-label">API Status</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Quick Actions</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn--primary" id="btn-quick-index">⚡ Index Everything</button>
+          <button class="btn btn--outline" id="btn-quick-search">🔍 Search</button>
+          <button class="btn btn--outline" id="btn-refresh-dash">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent Runs</div>
+        <div id="recent-runs-list" class="text-muted">Loading…</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">System Health</div>
+        <div id="health-details" class="text-muted text-mono" style="font-size:11px;line-height:1.8">Checking…</div>
+      </div>
+    </div>
+
+    <!-- ══════════ INDEX ══════════ -->
+    <div id="panel-index" class="panel">
+
+      <div class="card">
+        <div class="card-title">Sources to Index</div>
+        <div class="check-cards">
+          <div class="check-card checked" data-target="chk-web">
+            <input type="checkbox" id="chk-web" checked>
+            <span class="check-icon">🌐</span>
+            <span>Web History</span>
+          </div>
+          <div class="check-card checked" data-target="chk-pdfs">
+            <input type="checkbox" id="chk-pdfs" checked>
+            <span class="check-icon">📄</span>
+            <span>PDFs</span>
+          </div>
+          <div class="check-card checked" data-target="chk-claude">
+            <input type="checkbox" id="chk-claude" checked>
+            <span class="check-icon">🤖</span>
+            <span>Claude Chats</span>
+          </div>
+        </div>
+
+        <!-- ── PDF settings ───────────────────────────── -->
+        <div class="mt-8" id="pdf-settings">
+          <label>PDF folder path</label>
+          <input type="text" id="pdf-folder-input"
+            placeholder="/home/user/pdfs" />
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <div style="flex:1">
+              <label style="font-size:11px;color:var(--muted)">Max PDF files</label>
+              <input type="number" id="pdf-max-files" placeholder="10" min="1" value="10"
+                style="width:100%;margin-top:2px" />
+            </div>
+            <div style="flex:1">
+              <label style="font-size:11px;color:var(--muted)">Max pages per PDF</label>
+              <input type="number" id="pdf-max-pages" placeholder="50" min="1" value="50"
+                style="width:100%;margin-top:2px" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Web history settings ───────────────────── -->
+        <div class="mt-8" id="web-settings">
+          <div style="display:flex;gap:8px">
+            <div style="flex:2">
+              <label>Browser</label>
+              <select id="browser-select" style="width:100%;margin-top:2px">
+                <option value="brave">Brave</option>
+                <option value="chrome">Chrome</option>
+                <option value="edge">Edge</option>
+              </select>
+            </div>
+            <div style="flex:1">
+              <label>Max URLs</label>
+              <input type="number" id="web-max-urls" placeholder="10" min="1" value="10"
+                style="width:100%;margin-top:2px" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Claude settings ────────────────────────── -->
+        <div class="mt-8" id="claude-settings">
+          <label>Claude export path <span style="color:var(--muted);font-size:11px">(conversations.json)</span></label>
+          <input type="text" id="claude-path-input"
+            placeholder="/home/user/Downloads/conversations.json" />
+          <div style="margin-top:6px">
+            <label style="font-size:11px;color:var(--muted)">Max conversations</label>
+            <input type="number" id="claude-max-convs" placeholder="All" min="1"
+              style="width:100%;margin-top:2px" />
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <button class="btn btn--index btn--full" id="btn-index-all">⚡ Index Everything</button>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="progress-section" class="progress-section card">
+        <div class="flex-between">
+          <span id="progress-label" style="font-weight:500">Connecting…</span>
+          <button class="btn btn--outline btn--small" id="btn-cancel">Cancel</button>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progress-bar" class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="progress-count">0 / —</span>
+          <span id="progress-chunks">0 chunks</span>
+        </div>
+
+        <div class="step-cards mt-8">
+          <div class="step-card" id="step-web">
+            <div class="step-label">🌐 Web</div>
+            <div class="step-stat" id="step-web-stat">—</div>
+            <div class="step-pct" id="step-web-pct"></div>
+            <div class="step-mini-bar"><div class="step-mini-bar-fill" id="step-web-bar"></div></div>
+          </div>
+          <div class="step-card" id="step-pdf">
+            <div class="step-label">📄 PDFs</div>
+            <div class="step-stat" id="step-pdf-stat">—</div>
+            <div class="step-pct" id="step-pdf-pct"></div>
+            <div class="step-mini-bar"><div class="step-mini-bar-fill" id="step-pdf-bar"></div></div>
+            <div class="step-feed" id="step-pdf-feed"></div>
+          </div>
+          <div class="step-card" id="step-claude">
+            <div class="step-label">🤖 Claude</div>
+            <div class="step-stat" id="step-claude-stat">—</div>
+            <div class="step-pct" id="step-claude-pct"></div>
+            <div class="step-mini-bar"><div class="step-mini-bar-fill" id="step-claude-bar"></div></div>
+            <div class="step-feed" id="step-claude-feed"></div>
+          </div>
+        </div>
+
+        <div id="progress-ready" class="progress-ready mt-8">
+          ✅ <span id="progress-ready-count">0</span> pages indexed — you can search now
+        </div>
+
+        <div id="error-log" class="error-log">
+          <div class="error-log-header" id="error-log-header">
+            <span>⚠ Errors (<span id="error-count-badge" class="error-count-badge">0</span>)</span>
+            <button class="btn--tiny" id="btn-toggle-errors">Show</button>
+          </div>
+          <div id="error-list" class="error-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ SEARCH ══════════ -->
+    <!-- ══════════ TEST PIPELINE ══════════ -->
+    <div id="panel-test" class="panel">
+
+      <div class="card">
+        <div class="card-title">🧪 Test: Single URL</div>
+        <p class="text-muted" style="margin-bottom:10px;line-height:1.5">Index one URL to verify the full pipeline (fetch → parse → VLM → semantic chunk → embed → Qdrant).</p>
+        <label>URL to index</label>
+        <input type="url" id="test-url-input" placeholder="https://example.com/article" />
+        <button class="btn btn--primary btn--full mt-8" id="btn-test-url">⚡ Index This URL</button>
+        <div id="test-url-status" class="text-muted mt-8" style="font-size:11px;font-family:'IBM Plex Mono',monospace;min-height:20px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🧪 Test: Single PDF</div>
+        <p class="text-muted" style="margin-bottom:10px;line-height:1.5">Index one local PDF by its absolute path on the server. Tests Docling → semantic chunk → embed pipeline.</p>
+        <label>Absolute PDF path (on server)</label>
+        <input type="text" id="test-pdf-input" placeholder="/home/user/Documents/paper.pdf" />
+        <button class="btn btn--accent2 btn--full mt-8" id="btn-test-pdf">📄 Index This PDF</button>
+        <div id="test-pdf-status" class="text-muted mt-8" style="font-size:11px;font-family:'IBM Plex Mono',monospace;min-height:20px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔍 Test: Retrieval Query</div>
+        <p class="text-muted" style="margin-bottom:10px;line-height:1.5">Verify the retrieval engine: dual-space search → RRF fusion → cross-encoder rerank → answer generation.</p>
+        <div class="search-box">
+          <input type="text" id="test-query-input" placeholder="What is transformer attention?" />
+          <button class="btn btn--outline" id="btn-test-query">Search</button>
+        </div>
+        <div id="test-query-results" style="margin-top:12px;display:none">
+          <div id="test-query-answer" class="results-answer" style="display:none;margin-bottom:8px"></div>
+          <div id="test-query-list" style="display:flex;flex-direction:column;gap:6px"></div>
+          <div id="test-query-timing" class="text-muted" style="font-size:10px;margin-top:6px;font-family:'IBM Plex Mono',monospace"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="panel-search" class="panel">
+      <div class="card">
+        <div class="search-tabs">
+          <button class="search-tab active" id="search-tab-text">📝 Text Search</button>
+          <button class="search-tab" id="search-tab-image">🖼 Image Search</button>
+        </div>
+
+        <div id="text-search-panel">
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="e.g. backpropagation gradient descent" />
+            <button class="btn btn--accent2" id="btn-search">Search</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn--outline btn--small example-query">RAG pipeline architecture</button>
+            <button class="btn btn--outline btn--small example-query">SQLAlchemy session error fix</button>
+            <button class="btn btn--outline btn--small example-query">transformer attention mechanism</button>
+          </div>
+        </div>
+
+        <div id="image-search-panel" style="display:none">
+          <div class="drop-zone" id="image-drop-zone">
+            <img id="image-preview" alt="preview">
+            <div>Drop an image here or click to browse</div>
+            <input type="file" id="image-file-input" accept="image/*" style="display:none">
+          </div>
+          <button class="btn btn--accent2 btn--full mt-8" id="btn-image-search" style="display:none">
+            🔍 Search by Image
+          </button>
+        </div>
+      </div>
+
+      <div id="results-section" class="results-section">
+        <div id="results-answer" class="results-answer" style="display:none"></div>
+        <div id="agent-steps" class="agent-steps" style="display:none"></div>
+        <div id="results-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ WEB HISTORY ══════════ -->
+    <div id="panel-sources" class="panel">
+      <div class="card">
+        <div class="card-title">Browser History</div>
+        <div class="source-row">
+          <span class="nav-icon">🦁</span>
+          <div class="source-info">
+            <div class="source-name">Brave Browser</div>
+            <div class="source-detail">~/.config/BraveSoftware/Brave-Browser/Default/History</div>
+          </div>
+          <div class="source-actions">
+            <button class="btn btn--outline btn--small source-sync" data-source="brave">↻ Sync</button>
+          </div>
+        </div>
+        <div class="source-row">
+          <span class="nav-icon">🌐</span>
+          <div class="source-info">
+            <div class="source-name">Google Chrome</div>
+            <div class="source-detail">~/.config/google-chrome/Default/History</div>
+          </div>
+          <div class="source-actions">
+            <button class="btn btn--outline btn--small source-sync" data-source="chrome">↻ Sync</button>
+          </div>
+        </div>
+        <div class="source-row">
+          <span class="nav-icon">🔷</span>
+          <div class="source-info">
+            <div class="source-name">Microsoft Edge</div>
+            <div class="source-detail">~/.config/microsoft-edge/Default/History</div>
+          </div>
+          <div class="source-actions">
+            <button class="btn btn--outline btn--small source-sync" data-source="edge">↻ Sync</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PDFs ══════════ -->
+    <div id="panel-pdfs" class="panel">
+      <div class="card">
+        <div class="card-title">PDF Folder Indexing</div>
+        <p class="text-muted" style="margin-bottom:12px;line-height:1.6">
+          Automatically detects scanned vs typeset PDFs.<br>
+          Typeset → Docling (reading order) + nomic-embed-text + ColSmol visual.<br>
+          Scanned → ColSmol patch embeddings (GPU required).
+        </p>
+        <label>PDF folder path</label>
+        <input type="text" id="pdf-folder-path" placeholder="/home/anirudh97/Data/filesnew/files" value="/home/anirudh97/Data/filesnew/files" />
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--muted)">Max files to index</label>
+            <input type="number" id="pdf-max-files" placeholder="All files" min="1"
+              style="width:100%;margin-top:2px" />
+          </div>
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--muted)">Recursive (subfolders)</label>
+            <select id="pdf-recursive" style="width:100%;margin-top:2px;padding:6px 8px;
+              background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+              color:var(--text);font-size:12px">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn--primary btn--full mt-8 source-folder">📄 Index PDF Folder</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Single PDF Upload</div>
+        <div class="drop-zone" id="pdf-drop-zone">
+          Drop a PDF here or click to upload
+          <input type="file" id="pdf-file-input" accept=".pdf" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ CLAUDE ══════════ -->
+    <div id="panel-claude" class="panel">
+      <div class="banner banner--info">
+        <span>🤖</span>
+        <div>
+          Claude export detected: <strong id="claude-detect-status">checking…</strong><br>
+          <span style="font-size:11px;opacity:0.8" id="claude-detect-path"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Auto-Detect &amp; Index</div>
+        <p class="text-muted" style="margin-bottom:12px;line-height:1.6">
+          Searches common locations automatically. Q+A pairs are kept atomic — the question and answer are always indexed together.
+        </p>
+        <button class="btn btn--primary btn--full source-claude-auto">🤖 Index Claude Chats (auto)</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Custom Path or URL</div>
+        <label>Path to conversations.json (local path or http/https URL)</label>
+        <input type="url" id="claude-custom-path" placeholder="/home/user/Downloads/claude_export/conversations.json  OR  https://…" />
+        <button class="btn btn--outline btn--full mt-8" id="btn-claude-custom">Index from Path / URL</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Manual ZIP Import</div>
+        <p class="text-muted" style="margin-bottom:10px">Export at claude.ai → Settings → Privacy → Export Data, then drop the ZIP here:</p>
+        <button class="btn btn--outline btn--small source-import" data-source="claude">📦 Import Claude ZIP</button>
+        <button class="btn btn--outline btn--small source-import mt-8" data-source="chatgpt">📦 Import ChatGPT ZIP</button>
+      </div>
+    </div>
+
+    <!-- ══════════ LOGS ══════════ -->
+    <div id="panel-logs" class="panel">
+      <div class="card">
+        <div class="card-title flex-between">
+          Error Log
+          <button class="btn btn--outline btn--small" id="btn-clear-logs">Clear</button>
+        </div>
+        <div id="log-list" style="max-height:400px;overflow-y:auto;font-size:11px;font-family:'IBM Plex Mono',monospace;line-height:1.7;color:var(--muted)">
+          No errors yet.
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /main -->
+</div><!-- /app-layout -->
+
+<!-- ── IMPORT MODAL ── -->
+<div id="import-modal" class="modal">
+  <div class="modal-box">
+    <div id="import-modal-title" class="modal-title">Import Chats</div>
+    <div id="import-steps"></div>
+    <div class="drop-zone mt-8" id="import-drop-zone">
+      Drop ZIP file here or click to browse
+      <input type="file" id="import-file-input" accept=".zip" style="display:none">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--outline" id="btn-close-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/popup.js"></script>
+<script>
+// If opened as a full tab (not a popup window), the body fills the entire
+// browser viewport. Clamp the app-layout to a reasonable max-width so it
+// doesn't stretch absurdly on wide monitors.
+(function () {
+  const isTab = window.outerWidth > 1300 || window.outerHeight > 900;
+  if (isTab) {
+    const layout = document.querySelector('.app-layout');
+    if (layout) {
+      layout.style.maxWidth = '1200px';
+      layout.style.margin   = '0 auto';
+      layout.style.height   = '100vh';
+    }
+    document.body.style.background = 'var(--bg)';
+  }
+})();
+</script>
+</body>
+</html>

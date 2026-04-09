@@ -1,0 +1,125 @@
+/* extension/css/highlight.css
+   ──────────────────────────────
+   In-page highlight styles injected by content.js
+   Color-coded by content type — pre-computed at index time. */
+
+/* ── Text highlight — yellow ─────────────────────────────────────────────── */
+.bhi-text {
+  background-color: #FFD700 !important;
+  color: #1a1a1a !important;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+.bhi-text:hover { opacity: 0.8; }
+
+/* ── Image highlight — blue glow ─────────────────────────────────────────── */
+.bhi-image {
+  outline: 3px solid #2196F3 !important;
+  outline-offset: 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: outline-color 0.3s;
+}
+.bhi-image:hover { outline-color: #64b5f6; }
+
+/* ── Table highlight — green border ─────────────────────────────────────── */
+.bhi-table {
+  outline: 3px solid #4CAF50 !important;
+  outline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ── Code highlight — red border ────────────────────────────────────────── */
+.bhi-code {
+  outline: 3px solid #F44336 !important;
+  outline-offset: 2px;
+  background-color: rgba(244, 67, 54, 0.08) !important;
+  cursor: pointer;
+}
+
+/* ── Video highlight — purple overlay badge ─────────────────────────────── */
+.bhi-video {
+  position: relative;
+  outline: 3px solid #9C27B0 !important;
+}
+.bhi-video-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #9C27B0;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ── Audio highlight — orange ────────────────────────────────────────────── */
+.bhi-audio {
+  outline: 3px solid #FF9800 !important;
+  outline-offset: 2px;
+}
+
+/* ── Fade out after 15 seconds ───────────────────────────────────────────── */
+.bhi-fade-out {
+  transition: opacity 2s ease-out !important;
+  opacity: 0 !important;
+}
+
+/* ── Floating sidebar ────────────────────────────────────────────────────── */
+#bhi-sidebar {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  width: 260px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  padding: 12px;
+  z-index: 99999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: #e0e0e0;
+}
+#bhi-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+#bhi-sidebar-close {
+  background: none;
+  border: none;
+  color: #9a9ab0;
+  cursor: pointer;
+  font-size: 16px;
+}
+.bhi-match-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  background: #16213e;
+  border-left: 3px solid transparent;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.bhi-match-item:hover { opacity: 0.8; }
+.bhi-match-text   { border-left-color: #FFD700; }
+.bhi-match-image  { border-left-color: #2196F3; }
+.bhi-match-table  { border-left-color: #4CAF50; }
+.bhi-match-code   { border-left-color: #F44336; }
+.bhi-match-video  { border-left-color: #9C27B0; }
+.bhi-match-audio  { border-left-color: #FF9800; }
+.bhi-match-score {
+  float: right;
+  font-size: 10px;
+  color: #9a9ab0;
+}

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+qdrant-client
+sentence-transformers
+Pillow
+pymupdf
+trafilatura
+lxml
+spacy
+bm25s
+requests
+redis
+aiohttp

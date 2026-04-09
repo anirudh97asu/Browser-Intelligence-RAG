@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Browser RAG — PDF Viewer</title>
+<style>
+  :root {
+    --bg:      #1c2128;
+    --surface: #22272e;
+    --border:  #30363d;
+    --text:    #c9d1d9;
+    --muted:   #8b949e;
+    --accent:  #58a6ff;
+    --green:   #3fb950;
+    --amber:   #e3b341;
+    --sidebar: 280px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { display: flex; height: 100vh; background: var(--bg); color: var(--text);
+         font-family: 'IBM Plex Sans', system-ui, sans-serif; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--sidebar); min-width: var(--sidebar);
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #sidebar-header {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--accent);
+  }
+  #sidebar-header span { font-weight: 400; color: var(--muted); margin-left: 4px; }
+  #chunk-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .chunk-item {
+    padding: 8px 10px; margin-bottom: 6px; border-radius: 6px;
+    border: 1px solid var(--border); cursor: pointer; font-size: 11px;
+    background: var(--bg); transition: border-color .15s, background .15s;
+  }
+  .chunk-item:hover   { border-color: var(--accent); background: #1f2937; }
+  .chunk-item.active  { border-color: var(--green);  background: #0d2016; }
+  .chunk-rank  { font-weight: 700; color: var(--amber); font-size: 10px; }
+  .chunk-score { color: var(--muted); font-size: 10px; margin-left: 4px; }
+  .chunk-page  { color: var(--accent); font-size: 10px; margin: 3px 0; }
+  .chunk-text  { color: var(--text); line-height: 1.4;
+                 display: -webkit-box; -webkit-line-clamp: 3;
+                 -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* ── Main viewer ── */
+  #viewer { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Toolbar */
+  #toolbar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #toolbar button {
+    background: none; border: 1px solid var(--border); color: var(--text);
+    border-radius: 5px; padding: 4px 10px; cursor: pointer; font-size: 12px;
+  }
+  #toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+  #page-info { color: var(--muted); font-size: 12px; min-width: 90px; text-align: center; }
+  #file-name { color: var(--muted); font-size: 11px; flex: 1;
+               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #status-bar { color: var(--accent); font-size: 11px; }
+
+  /* Canvas container */
+  #canvas-wrap {
+    flex: 1; overflow: auto; display: flex;
+    justify-content: center; padding: 20px;
+    background: #111;
+  }
+  #page-container { position: relative; display: inline-block; }
+  #page-img { display: block; max-width: 100%; }
+  .hl-box {
+    position: absolute; border: 2px solid;
+    border-radius: 2px; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .hl-box.text-hl  { border-color: #e3b341; background: rgba(227,179,65,.18); }
+  .hl-box.img-hl   { border-color: #58a6ff; background: rgba(88,166,255,.12); }
+  .hl-box.active-hl { border-color: #3fb950; background: rgba(63,185,80,.25); }
+  .hl-label {
+    position: absolute; top: -18px; left: 0;
+    background: #e3b341; color: #000; font-size: 9px; font-weight: 700;
+    padding: 1px 4px; border-radius: 3px; pointer-events: none;
+  }
+  #empty-msg {
+    color: var(--muted); font-size: 13px; text-align: center;
+    padding: 40px 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar: chunk list -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    Matched chunks <span id="chunk-count"></span>
+  </div>
+  <div id="chunk-list">
+    <div id="empty-msg">No chunks to display.</div>
+  </div>
+</div>
+
+<!-- Main viewer -->
+<div id="viewer">
+  <div id="toolbar">
+    <button id="btn-prev">◀ Prev</button>
+    <span id="page-info">— / —</span>
+    <button id="btn-next">Next ▶</button>
+    <span style="width:1px;height:20px;background:var(--border)"></span>
+    <button id="btn-zoom-out">−</button>
+    <button id="btn-zoom-in">+</button>
+    <span id="file-name"></span>
+    <span id="status-bar">Loading…</span>
+  </div>
+  <div id="canvas-wrap">
+    <div id="page-container">
+      <img id="page-img" alt="PDF page" />
+    </div>
+  </div>
+</div>
+
+<script src="pdf_viewer.js"></script>
+</body>
+</html>

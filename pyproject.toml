@@ -1,0 +1,37 @@
+[project]
+name = "browser-rag"
+version = "2.0.0"
+description = "Local RAG with hybrid search, CLIP embeddings, and browser extension highlighting"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "qdrant-client>=1.9.0",
+    "sentence-transformers>=2.7.0",
+    "Pillow>=10.3.0",
+    "pymupdf>=1.24.0",
+    "trafilatura>=1.10.0",
+    "lxml>=5.2.0",
+    "spacy>=3.7.0",
+    "bm25s>=0.1.10",
+    "requests>=2.31.0",
+    "redis>=5.0.0",
+    "aiohttp>=3.9.0",
+    "pydantic>=2.7.0",
+    "python-dotenv>=1.0.0",
+    "docling>=2.0.0",
+    "datasets>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

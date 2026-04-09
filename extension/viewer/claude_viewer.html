@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Claude Conversation — RAG Viewer</title>
+<style>
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --surface2:#1c2128;
+    --border:  #30363d;
+    --accent:  #3fb950;
+    --accent2: #58a6ff;
+    --warning: #e3b341;
+    --danger:  #f85149;
+    --text:    #c9d1d9;
+    --muted:   #6e7681;
+    --radius:  8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #sidebar-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  #sidebar-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  #conv-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #chunk-count {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  #chunk-list { overflow-y: auto; flex: 1; padding: 8px 0; }
+  .chunk-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .chunk-item:hover   { background: var(--surface2); }
+  .chunk-item.active  { background: rgba(63,185,80,0.1); border-left: 3px solid var(--accent); }
+  .chunk-rank  { font-size: 10px; font-weight: 700; color: var(--accent); margin-right: 6px; font-family: monospace; }
+  .chunk-score { font-size: 10px; color: var(--muted); font-family: monospace; }
+  .chunk-turn  { font-size: 11px; color: var(--muted); margin: 2px 0; }
+  .chunk-preview {
+    font-size: 11px; color: var(--text); opacity: 0.75;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  /* ── Main viewer ── */
+  #viewer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  #file-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #status-bar { color: var(--muted); font-size: 11px; font-family: monospace; }
+
+  #conversation-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Turn cards ── */
+  .turn-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .turn-card.highlighted {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(63,185,80,0.2);
+  }
+  .turn-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .turn-role {
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .turn-role.human     { color: var(--accent2); }
+  .turn-role.assistant { color: var(--accent);  }
+  .turn-idx { font-family: monospace; }
+  .turn-ts  { margin-left: auto; }
+
+  .turn-body {
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  /* Highlight span injected around matched text */
+  .rag-text-hl {
+    background: rgba(227,179,65,0.35);
+    border-radius: 2px;
+    outline: 1px solid var(--warning);
+    padding: 0 1px;
+    scroll-margin-top: 60px;
+  }
+
+  /* ── Rank badge ── */
+  .rank-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: monospace;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  #empty-msg { color: var(--muted); font-size: 12px; padding: 12px 14px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div id="sidebar-title">RAG Viewer — Claude</div>
+    <div id="conv-name">Conversation</div>
+    <div id="chunk-count">0 matched chunks</div>
+  </div>
+  <div id="chunk-list">
+    <div id="empty-msg">No chunks loaded.</div>
+  </div>
+</div>
+
+<div id="viewer">
+  <div id="toolbar">
+    <span id="file-name">Claude Conversation</span>
+    <span id="status-bar">Loading…</span>
+  </div>
+  <div id="conversation-area"></div>
+</div>
+
+<script>
+'use strict';
+
+// ── Parse chunks from URL ─────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+let chunks = [];
+try {
+  chunks = JSON.parse(decodeURIComponent(params.get('data') || '[]'));
+} catch (e) {
+  console.warn('[Claude Viewer] failed to parse chunks:', e);
+}
+
+const convArea   = document.getElementById('conversation-area');
+const chunkList  = document.getElementById('chunk-list');
+const statusBar  = document.getElementById('status-bar');
+const convNameEl = document.getElementById('conv-name');
+const chunkCountEl = document.getElementById('chunk-count');
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+function init() {
+  if (!chunks.length) {
+    statusBar.textContent = 'No chunks provided.';
+    return;
+  }
+
+  // Show conversation name from first chunk
+  const firstName = chunks[0]?.conv_name || 'Claude Conversation';
+  convNameEl.textContent = firstName;
+  document.title = firstName + ' — RAG Viewer';
+  chunkCountEl.textContent = `${chunks.length} matched chunk${chunks.length > 1 ? 's' : ''}`;
+
+  // Build sidebar
+  buildSidebar();
+
+  // Render all chunks as conversation turns
+  renderConversation();
+
+  statusBar.textContent = `${chunks.length} chunks · scroll to highlighted turns`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  document.getElementById('empty-msg')?.remove();
+  chunks.forEach((c, i) => {
+    const item = document.createElement('div');
+    item.className = 'chunk-item';
+    item.dataset.idx = i;
+    item.innerHTML = `
+      <div>
+        <span class="chunk-rank">#${i + 1}</span>
+        <span class="chunk-score">score ${(c.score || 0).toFixed(3)}</span>
+      </div>
+      <div class="chunk-turn">Turn ${c.turn_index ?? '?'}</div>
+      <div class="chunk-preview">${esc((c.text || '').slice(0, 80))}</div>
+    `;
+    item.addEventListener('click', () => scrollToChunk(i, item));
+    chunkList.appendChild(item);
+  });
+}
+
+// ── Render conversation ───────────────────────────────────────────────────────
+function renderConversation() {
+  // Each chunk is a Q+A pair stored as "Q: ...\nA: ..."
+  // Split them back out and render as separate human/assistant bubbles.
+  chunks.forEach((c, idx) => {
+    const raw  = c.text || '';
+    const qMatch = raw.match(/^Q:\s*([\s\S]*?)(?:\nA:|$)/);
+    const aMatch = raw.match(/\nA:\s*([\s\S]*)$/);
+
+    const qText = qMatch ? qMatch[1].trim() : raw;
+    const aText = aMatch ? aMatch[1].trim() : '';
+
+    const card = document.createElement('div');
+    card.className = 'turn-card highlighted';
+    card.id = `chunk-${idx}`;
+
+    const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
+    const ts = c.timestamp ? `<span class="turn-ts">${esc(c.timestamp.slice(0, 10))}</span>` : '';
+
+    // Human turn
+    const humanDiv = `
+      <div class="turn-header">
+        <span class="turn-role human">👤 Human</span>
+        <span class="turn-idx">turn ${c.turn_index ?? idx}</span>
+        ${ts}
+        ${rankBadge}
+      </div>
+      <div class="turn-body">${highlightText(esc(qText), idx)}</div>
+    `;
+
+    // Assistant turn (only if present)
+    const assistantDiv = aText ? `
+      <div class="turn-header" style="border-top:1px solid var(--border)">
+        <span class="turn-role assistant">🤖 Assistant</span>
+      </div>
+      <div class="turn-body">${esc(aText)}</div>
+    ` : '';
+
+    card.innerHTML = humanDiv + assistantDiv;
+    convArea.appendChild(card);
+  });
+
+  // Scroll to first highlighted chunk after render
+  setTimeout(() => {
+    const first = document.getElementById('chunk-0');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
+}
+
+// ── Highlight matched text inside a turn ──────────────────────────────────────
+function highlightText(escapedHtml, chunkIdx) {
+  // The chunk text starts with "Q: ..." — highlight the first 60 chars of
+  // the question as a visual anchor (fingerprint match).
+  const c = chunks[chunkIdx];
+  const fp = (c?.text || '').replace(/^Q:\s*/, '').slice(0, 60).trim();
+  if (!fp || fp.length < 10) return escapedHtml;
+
+  const needle = esc(fp);
+  const idx = escapedHtml.indexOf(needle);
+  if (idx < 0) return escapedHtml;
+
+  return (
+    escapedHtml.slice(0, idx) +
+    `<mark class="rag-text-hl">${needle}</mark>` +
+    escapedHtml.slice(idx + needle.length)
+  );
+}
+
+// ── Scroll sidebar + viewer to chunk ─────────────────────────────────────────
+function scrollToChunk(idx, sidebarItem) {
+  // Sidebar active state
+  document.querySelectorAll('.chunk-item.active').forEach(el => el.classList.remove('active'));
+  if (sidebarItem) {
+    sidebarItem.classList.add('active');
+    sidebarItem.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Scroll viewer to card
+  const card = document.getElementById(`chunk-${idx}`);
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
